@@ -108,6 +108,8 @@ typedef struct {
 	/* added in mysql creds */
 	char *my_user;
 	char *my_pass;
+	char *my_db;
+	int mysql_toggle;
 	BarMsgFormatStr_t msgFormat[MSG_COUNT];
 } BarSettings_t;
 

@@ -60,6 +60,7 @@ THE SOFTWARE.
 #include <ctype.h>
 /*	authenticate user
  */
+
 static bool BarMainLoginUser (BarApp_t *app) {
 	PianoReturn_t pRet;
 	CURLcode wRet;
@@ -239,6 +240,8 @@ static void BarMainGetPlaylist (BarApp_t *app) {
  */
 void strip_chars(BarApp_t *app, char *t) {
 
+	/* might look shitty, but I'm proud of it. */
+	/* if there is an apostrophe insert a blank space */
 	char *dst = t;
 
 	for (int i = 0; i <= sizeof(t); i++) {
@@ -249,14 +252,60 @@ void strip_chars(BarApp_t *app, char *t) {
 			dst[i] = t[i];
 		}
 	}
-	const PianoSong_t * const curSong = app->playlist;
-	assert (curSong != NULL);
 	
-	/* overwrite the data inside curSong->whatever
+	/* overwrite the data inside curSong->%whatever t contains%
 	 * Doesn't matter, because it will soon be overwritten by pianobar */
 	memset(&t,'\0',sizeof(t));
 	memcpy(&t,&dst,sizeof(dst));
 }
+
+static void MysqlCode(BarApp_t *app) {
+	
+	/* make sure we have something in app struct */
+	assert (app != NULL);
+	/* call app->playlist, curSong */
+	const PianoSong_t * const curSong = app->playlist;
+	assert (curSong != NULL);
+
+	/* try mysql */
+	char *my_user = app->settings.my_user;
+	char *my_pass = app->settings.my_pass;
+	char *my_db = app->settings.my_db;
+
+	/* escape the dreaded single apostrophe */
+	strip_chars(app, curSong->title);
+	strip_chars(app, curSong->artist);
+	strip_chars(app, curSong->album);
+	strip_chars(app, curSong->coverArt);
+
+	/* creat buffer and query to put in buffer */
+	char buf[1024];
+	char my_query[] = {
+		"INSERT INTO Playlist(title,artist,album,artwork) VALUES('%s','%s','%s','%s');"
+	};
+	sprintf(buf, my_query, curSong->title, curSong->artist, curSong->album, curSong->coverArt);
+	
+	/* no, really, try mysql */
+	MYSQL *conn = mysql_init(NULL);
+	if (conn == NULL) {
+		fprintf(stderr, "%s\n", mysql_error(conn));
+	}
+	if (mysql_real_connect(conn, "localhost", my_user, my_pass, my_db, 0, NULL, 0) == NULL) {
+		fprintf(stderr, "%s\n", mysql_error(conn));
+		mysql_close(conn);
+	}
+	if (mysql_query(conn, "CREATE TABLE IF NOT EXISTS Playlist(ID int NOT NULL AUTO_INCREMENT, title TEXT, artist TEXT, album TEXT, artwork TEXT, PRIMARY KEY (ID));")) {
+		fprintf(stderr, "%s\n", mysql_error(conn));
+		mysql_close(conn);
+	}
+	if (mysql_query(conn,buf)) {
+		fprintf(stderr, "%s\n", mysql_error(conn));
+		mysql_close(conn);
+		exit(1);
+	}
+}
+
+
 
 static void BarMainStartPlayback (BarApp_t *app, pthread_t *playerThread) {
 	assert (app != NULL);
@@ -269,39 +318,11 @@ static void BarMainStartPlayback (BarApp_t *app, pthread_t *playerThread) {
 			PianoFindStationById (app->ph.stations,
 			curSong->stationId) : NULL);
 
-	/* try mysql */
-	char *my_user = app->settings.my_user;
-	char *my_pass = app->settings.my_pass;
+	int mysql_toggle = app->settings.mysql_toggle;
 
-
-	/* escape the dreaded single apostrophe */
-	strip_chars(app, curSong->title);
-	strip_chars(app, curSong->artist);
-	strip_chars(app, curSong->album);
-
-	char buf[1024];
-	char my_query[] = {
-		"INSERT INTO Playlist(title,artist,album) VALUES('%s','%s','%s');"
-	};
-	sprintf(buf, my_query, curSong->title, curSong->artist, curSong->album);
-	
-	MYSQL *conn = mysql_init(NULL);
-
-	if (conn == NULL) {
-		fprintf(stderr, "%s\n", mysql_error(conn));
-	}
-	if (mysql_real_connect(conn, "localhost", my_user, my_pass, "pianobar", 0, NULL, 0) == NULL) {
-		fprintf(stderr, "%s\n", mysql_error(conn));
-		mysql_close(conn);
-	}
-	if (mysql_query(conn, "CREATE TABLE IF NOT EXISTS Playlist(ID int NOT NULL AUTO_INCREMENT, title TEXT, artist TEXT, album TEXT, PRIMARY KEY (ID));")) {
-		fprintf(stderr, "%s\n", mysql_error(conn));
-		mysql_close(conn);
-	}
-	if (mysql_query(conn,buf)) {
-		fprintf(stderr, "%s\n", mysql_error(conn));
-		mysql_close(conn);
-		exit(1);
+	/* if mysql_toggle is greater than zero, used atoi in settings.c for boolean algebra */
+	if (mysql_toggle) {
+		MysqlCode(app);
 	}
 
 	static const char httpPrefix[] = "http://";
@@ -334,8 +355,8 @@ static void BarMainStartPlayback (BarApp_t *app, pthread_t *playerThread) {
 		/* start player */
 		pthread_create (playerThread, NULL, BarPlayerThread,
 				&app->player);
+		}
 	}
-}
 
 /*	player is done, clean up
  */

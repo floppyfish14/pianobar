@@ -134,6 +134,7 @@ void BarSettingsDestroy (BarSettings_t *settings) {
 	/* added in mysql creds */
 	free (settings->my_user);
 	free (settings->my_pass);
+	free (settings->my_db);
 	for (size_t i = 0; i < MSG_COUNT; i++) {
 		free (settings->msgFormat[i].prefix);
 		free (settings->msgFormat[i].postfix);
@@ -161,6 +162,8 @@ void BarSettingsRead (BarSettings_t *settings) {
 	/* apply defaults */
 	settings->audioQuality = PIANO_AQ_HIGH;
 	settings->autoselect = true;
+	/* added mysql use as default */
+	settings->mysql_toggle = 1;
 	settings->history = 5;
 	settings->volume = 0;
 	settings->gainMul = 1.0;
@@ -284,10 +287,15 @@ void BarSettingsRead (BarSettings_t *settings) {
 				settings->username = strdup (val);
 			} else if (streq ("password", key)) {
 				settings->password = strdup (val);
+			/* added mysql stuff */
 			} else if (streq ("my_user", key)) {
 				settings->my_user = strdup (val);
 			} else if (streq ("my_pass", key)) {
 				settings->my_pass = strdup (val);
+			} else if (streq ("my_db", key)) {
+				settings->my_db = strdup (val);
+			} else if (streq ("mysql_toggle", key)) {
+				settings->mysql_toggle = atoi (val);
 			} else if (streq ("password_command", key)) {
 				settings->passwordCmd = strdup (val);
 			} else if (streq ("rpc_host", key)) {
