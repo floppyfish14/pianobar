@@ -252,7 +252,7 @@ void strip_chars(BarApp_t *app, char *t) {
 	const PianoSong_t * const curSong = app->playlist;
 	assert (curSong != NULL);
 	
-	/* overwrite the data inside curSong->artist
+	/* overwrite the data inside curSong->whatever
 	 * Doesn't matter, because it will soon be overwritten by pianobar */
 	memset(&t,'\0',sizeof(t));
 	memcpy(&t,&dst,sizeof(dst));
