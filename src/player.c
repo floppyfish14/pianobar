@@ -20,7 +20,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-
+/* Needed for mysql statements */
+#include <mysql/mysql.h>
 /* receive/play audio stream */
 
 #include "config.h"
@@ -192,7 +193,7 @@ static bool openStream (player_t * const player) {
 
 	player->songPlayed = 0;
 	player->songDuration = av_q2d (player->st->time_base) *
-			(double) player->st->duration;
+			(double) player->st->duration;	
 
 	return true;
 }

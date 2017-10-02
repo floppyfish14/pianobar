@@ -56,6 +56,8 @@ THE SOFTWARE.
 #include "ui_dispatch.h"
 #include "ui_readline.h"
 
+#include <mysql/mysql.h>
+#include <ctype.h>
 /*	authenticate user
  */
 static bool BarMainLoginUser (BarApp_t *app) {
@@ -235,6 +237,47 @@ static void BarMainGetPlaylist (BarApp_t *app) {
 
 /*	start new player thread
  */
+void strip_title(BarApp_t *app, char *t) {
+	
+	/* I'm so excited that the character stripping finally worked! */
+	char *dst = t;
+	
+	for (int i = 0; i <= sizeof(t); i++) {
+		if (t[i] == '\'') {
+			dst[i] = ' ';
+		}
+		else {
+			dst[i] = t[i];
+		}
+		
+	}
+	const PianoSong_t * const curSong = app->playlist;
+	assert (curSong != NULL);
+	
+	memset(&curSong->title,'\0',sizeof(curSong->title));
+	memcpy(&curSong->title,&dst,sizeof(dst));
+}
+
+void strip_artist(BarApp_t *app, char *t) {
+
+	/* yes, it finally fucking worked! */	
+	char *dst = t;
+
+	for (int i = 0; i <= sizeof(t); i++) {
+		if (t[i] == '\'') {
+			dst[i] = ' ';
+		}
+		else {
+			dst[i] = t[i];
+		}
+	}
+	const PianoSong_t * const curSong = app->playlist;
+	assert (curSong != NULL);
+	
+	memset(&curSong->artist,'\0',sizeof(curSong->artist));
+	memcpy(&curSong->artist,&dst,sizeof(dst));
+}
+
 static void BarMainStartPlayback (BarApp_t *app, pthread_t *playerThread) {
 	assert (app != NULL);
 	assert (playerThread != NULL);
@@ -245,6 +288,40 @@ static void BarMainStartPlayback (BarApp_t *app, pthread_t *playerThread) {
 	BarUiPrintSong (&app->settings, curSong, app->curStation->isQuickMix ?
 			PianoFindStationById (app->ph.stations,
 			curSong->stationId) : NULL);
+
+	/* try mysql */
+	char *my_user = app->settings.my_user;
+	char *my_pass = app->settings.my_pass;
+
+
+	/* try to escape the dreaded single apostrophe */
+	strip_title(app, curSong->title);
+	strip_artist(app, curSong->artist);
+
+	char buf[1024];
+	char my_query[] = {
+		"INSERT INTO Playlist(title,artist) VALUES('%s','%s');"
+	};
+	sprintf(buf, my_query, curSong->title, curSong->artist);
+	
+	MYSQL *conn = mysql_init(NULL);
+
+	if (conn == NULL) {
+		fprintf(stderr, "%s\n", mysql_error(conn));
+	}
+	if (mysql_real_connect(conn, "localhost", my_user, my_pass, "pianobar", 0, NULL, 0) == NULL) {
+		fprintf(stderr, "%s\n", mysql_error(conn));
+		mysql_close(conn);
+	}
+	if (mysql_query(conn, "CREATE TABLE IF NOT EXISTS Playlist(ID int NOT NULL AUTO_INCREMENT, title TEXT, artist TEXT, PRIMARY KEY (ID));")) {
+		fprintf(stderr, "%s\n", mysql_error(conn));
+		mysql_close(conn);
+	}
+	if (mysql_query(conn,buf)) {
+		fprintf(stderr, "%s\n", mysql_error(conn));
+		mysql_close(conn);
+		exit(1);
+	}
 
 	static const char httpPrefix[] = "http://";
 	/* avoid playing local files */

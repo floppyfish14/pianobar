@@ -73,6 +73,10 @@ typedef struct {
 	/* settings */
 	double gain;
 	char *url;
+	/* added these for mysql database */
+	char *artist;
+	char *title;
+	/* end of added section */
 	const BarSettings_t *settings;
 
 	/* measured in seconds */

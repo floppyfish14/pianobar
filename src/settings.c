@@ -131,6 +131,9 @@ void BarSettingsDestroy (BarSettings_t *settings) {
 	free (settings->device);
 	free (settings->inkey);
 	free (settings->outkey);
+	/* added in mysql creds */
+	free (settings->my_user);
+	free (settings->my_pass);
 	for (size_t i = 0; i < MSG_COUNT; i++) {
 		free (settings->msgFormat[i].prefix);
 		free (settings->msgFormat[i].postfix);
@@ -281,6 +284,10 @@ void BarSettingsRead (BarSettings_t *settings) {
 				settings->username = strdup (val);
 			} else if (streq ("password", key)) {
 				settings->password = strdup (val);
+			} else if (streq ("my_user", key)) {
+				settings->my_user = strdup (val);
+			} else if (streq ("my_pass", key)) {
+				settings->my_pass = strdup (val);
 			} else if (streq ("password_command", key)) {
 				settings->passwordCmd = strdup (val);
 			} else if (streq ("rpc_host", key)) {

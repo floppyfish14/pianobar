@@ -105,6 +105,9 @@ typedef struct {
 	char *fifo;
 	char *rpcHost, *rpcTlsPort, *partnerUser, *partnerPassword, *device, *inkey, *outkey, *caBundle;
 	char keys[BAR_KS_COUNT];
+	/* added in mysql creds */
+	char *my_user;
+	char *my_pass;
 	BarMsgFormatStr_t msgFormat[MSG_COUNT];
 } BarSettings_t;
 
