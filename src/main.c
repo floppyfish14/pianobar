@@ -237,30 +237,8 @@ static void BarMainGetPlaylist (BarApp_t *app) {
 
 /*	start new player thread
  */
-void strip_title(BarApp_t *app, char *t) {
-	
-	/* I'm so excited that the character stripping finally worked! */
-	char *dst = t;
-	
-	for (int i = 0; i <= sizeof(t); i++) {
-		if (t[i] == '\'') {
-			dst[i] = ' ';
-		}
-		else {
-			dst[i] = t[i];
-		}
-		
-	}
-	const PianoSong_t * const curSong = app->playlist;
-	assert (curSong != NULL);
-	
-	memset(&curSong->title,'\0',sizeof(curSong->title));
-	memcpy(&curSong->title,&dst,sizeof(dst));
-}
+void strip_chars(BarApp_t *app, char *t) {
 
-void strip_artist(BarApp_t *app, char *t) {
-
-	/* yes, it finally fucking worked! */	
 	char *dst = t;
 
 	for (int i = 0; i <= sizeof(t); i++) {
@@ -274,8 +252,10 @@ void strip_artist(BarApp_t *app, char *t) {
 	const PianoSong_t * const curSong = app->playlist;
 	assert (curSong != NULL);
 	
-	memset(&curSong->artist,'\0',sizeof(curSong->artist));
-	memcpy(&curSong->artist,&dst,sizeof(dst));
+	/* overwrite the data inside curSong->artist
+	 * Doesn't matter, because it will soon be overwritten by pianobar */
+	memset(&t,'\0',sizeof(t));
+	memcpy(&t,&dst,sizeof(dst));
 }
 
 static void BarMainStartPlayback (BarApp_t *app, pthread_t *playerThread) {
@@ -294,15 +274,16 @@ static void BarMainStartPlayback (BarApp_t *app, pthread_t *playerThread) {
 	char *my_pass = app->settings.my_pass;
 
 
-	/* try to escape the dreaded single apostrophe */
-	strip_title(app, curSong->title);
-	strip_artist(app, curSong->artist);
+	/* escape the dreaded single apostrophe */
+	strip_chars(app, curSong->title);
+	strip_chars(app, curSong->artist);
+	strip_chars(app, curSong->album);
 
 	char buf[1024];
 	char my_query[] = {
-		"INSERT INTO Playlist(title,artist) VALUES('%s','%s');"
+		"INSERT INTO Playlist(title,artist,album) VALUES('%s','%s','%s');"
 	};
-	sprintf(buf, my_query, curSong->title, curSong->artist);
+	sprintf(buf, my_query, curSong->title, curSong->artist, curSong->album);
 	
 	MYSQL *conn = mysql_init(NULL);
 
@@ -313,7 +294,7 @@ static void BarMainStartPlayback (BarApp_t *app, pthread_t *playerThread) {
 		fprintf(stderr, "%s\n", mysql_error(conn));
 		mysql_close(conn);
 	}
-	if (mysql_query(conn, "CREATE TABLE IF NOT EXISTS Playlist(ID int NOT NULL AUTO_INCREMENT, title TEXT, artist TEXT, PRIMARY KEY (ID));")) {
+	if (mysql_query(conn, "CREATE TABLE IF NOT EXISTS Playlist(ID int NOT NULL AUTO_INCREMENT, title TEXT, artist TEXT, album TEXT, PRIMARY KEY (ID));")) {
 		fprintf(stderr, "%s\n", mysql_error(conn));
 		mysql_close(conn);
 	}
