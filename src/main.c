@@ -256,7 +256,11 @@ void strip_chars(BarApp_t *app, char *t) {
 	/* overwrite the data inside curSong->%whatever t contains%
 	 * Doesn't matter, because it will soon be overwritten by pianobar */
 	memset(&t,'\0',sizeof(t));
-	memcpy(&t,&dst,sizeof(dst));
+	/* dst is already pointing to an address in memory, no need to dereference with &.
+	 * using & would cause issues if two different columns had apostrophes.
+	 * most likely caused an issue because it wasn't copying current dst data, 
+	 * instead copied whatever was contained in mem address at the time. */
+	memcpy(&t,dst,sizeof(dst));
 }
 
 static void MysqlCode(BarApp_t *app) {
