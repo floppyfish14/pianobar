@@ -1,7 +1,7 @@
-This version of pianobar automatically uploads artist and title to your mysql database.
-As of right now, the database is named pianobar and the table is named Playlist; however, these will be added to the config file options later.
-
-The options for mysql username and password can be added into your ~/.config/pianobar/config file. example:
+# This version of pianobar automatically uploads title, artist, album, and album art to your mysql database.
+# You can name the database whatever you want inside of your config file but the table is called 'Playlist'.
+# The options for mysql username and password can be added into your ~/.config/pianobar/config file as well. example:
+# Also added the option to toggle on and off mysql usage.
 
 # This is an example configuration file for pianobar. You may remove the # from
 # lines you need and copy/move this file to ~/.config/pianobar/config
@@ -12,6 +12,8 @@ user = user@gmail.com
 password = password
 my_user = mysql #added this feature
 my_pass = mysql #added this feature
+my_db = pianobar #added this feature
+mysql_toggle = 1 # 1 = use mysql; 0 = dont use mysql
 # or
 #password_command = gpg --decrypt ~/password
 
